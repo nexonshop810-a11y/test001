@@ -1,4 +1,4 @@
-wait(20)
+
 local PLACE_ID = game.PlaceId
 
 
@@ -18,6 +18,8 @@ local PLACE_ID = game.PlaceId
     -- ⭐⭐ เพิ่มตรงนี้ ⭐⭐
 local lastProgressCheck = tick()
 local lastTotalProgress = 0
+local lastEggCheck = tick()
+local lastEggProgress = 0
 
 
     local WORLD_ORDER = {
@@ -188,6 +190,43 @@ task.spawn(function()
         end)
     end
 end)
+
+------------------------------------------------------------
+-- 🥚 Anti-Stuck เฉพาะเควสไข่ → 2 นาทีไม่คืบหน้า = Hop ย้อนโลก
+------------------------------------------------------------
+task.spawn(function()
+    while true do
+        task.wait(5)
+
+        -- ตรวจว่าอยู่ในช่วงทำเควสไข่เท่านั้น
+        if not isEggDone() then
+            local currentProg = getMissionValue("EggQuest")
+
+            -- ถ้า progress ขยับ → อัปเดตเวลา
+            if currentProg > lastEggProgress then
+                lastEggProgress = currentProg
+                lastEggCheck = tick()
+
+            else
+                -- ไม่ขยับเลย → เช็คครบ 120 วินาที
+                if tick() - lastEggCheck >= 120 then
+                    print("⛔ [EGG ANTI-STUCK] เควสไข่ไม่ขยับเกิน 2 นาที → วาร์ปย้อนโลก")
+                    hopToPreviousWorld()
+
+                    -- รีเซ็ตค่า
+                    lastEggCheck = tick()
+                end
+            end
+        else
+            -- ถ้าเควสไข่เสร็จแล้ว รีเซ็ต timer
+            lastEggProgress = getMissionValue("EggQuest")
+            lastEggCheck = tick()
+        end
+    end
+end)
+
+
+
 
 local function hasNestPath()
     local env = workspace:FindFirstChild("Environment")
